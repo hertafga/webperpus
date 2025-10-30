@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Perpustakaan CRUD • Supabase</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg:#0b1020; --card:#121831; --muted:#9fb0d3; --accent:#4f7cff; --ok:#22c55e; --warn:#f59e0b; --err:#ef4444; }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#0b1020,#0e1530);color:#e9eefc;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif}
+    header{position:sticky;top:0;background:rgba(11,16,32,.7);backdrop-filter:saturate(1.2) blur(8px);border-bottom:1px solid #1d274a;z-index:10}
+    .wrap{max-width:1100px;margin:0 auto;padding:24px}
+    h1{font-weight:700;font-size:28px;margin:0}
+    h2{font-size:18px;margin:0 0 12px;color:#d7e4ff}
+    .grid{display:grid;gap:18px}
+    @media(min-width:960px){.grid-2{grid-template-columns:1fr 1fr}}
+    .card{background:var(--card);border:1px solid #1d274a;border-radius:16px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
+    input,select,button,textarea{font:inherit}
+    input,select,textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #243058;background:#0e1429;color:#e9eefc;outline:none}
+    input:focus,select:focus,textarea:focus{border-color:#2c3c6d;box-shadow:0 0 0 3px rgba(79,124,255,.15)}
+    .row{display:grid;gap:10px;grid-template-columns:1fr 1fr}
+    .btn{display:inline-flex;align-items:center;gap:8px;border:1px solid #2b396a;background:#152046;color:#e9eefc;padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:600}
+    .btn:hover{background:#1a2958}
+    .btn.primary{background:linear-gradient(180deg,#3c64ff,#3356d3);border-color:#3d5ef5}
+    .btn.success{background:linear-gradient(180deg,#1fbf62,#189b4f);border-color:#198e4a}
+    .btn.warn{background:linear-gradient(180deg,#ffb020,#e49207);border-color:#e49207}
+    .btn.danger{background:linear-gradient(180deg,#f0616c,#d84854);border-color:#c33f49}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap}
+    table{width:100%;border-collapse:separate;border-spacing:0 10px}
+    th,td{text-align:left;padding:10px 12px}
+    th{font-size:12px;color:var(--muted);font-weight:600}
+    tbody tr{background:#0f1730;border:1px solid #1e2a50}
+    tbody tr td:first-child{border-top-left-radius:10px;border-bottom-left-radius:10px}
+    tbody tr td:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px}
+    .muted{color:var(--muted)}
+    .tag{display:inline-block;padding:3px 8px;border-radius:999px;background:#152046;border:1px solid #2b396a;color:#cfe0ff;font-size:12px}
+    .sep{height:1px;background:#1d274a;margin:14px 0}
+    .note{font-size:12px;color:var(--muted)}
+    .kbd{background:#0e1429;border:1px solid #243058;border-bottom-color:#1b274c;padding:2px 6px;border-radius:6px}
+    footer{color:#8ea2d6;font-size:12px;opacity:.9;padding:24px 0}
+    .pill{display:inline-flex;gap:8px;padding:8px 10px;border-radius:999px;background:#111a38;border:1px solid #223063}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap" style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+      <h1>Perpustakaan CRUD • Supabase</h1>
+      <div class="pill">
+        <span class="muted">Status:</span>
+        <strong id="status">Belum terhubung</strong>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap grid" style="margin-top:18px">
+    <!-- Auth / Login -->
+    <section class="card" id="loginSection" style="display:none">
+      <h2>Login / Daftar Pengguna</h2>
+      <p class="note">Gunakan email & password Supabase Auth. Setelah login, Anda bisa mengelola data.</p>
+      <div class="grid grid-2" style="margin-top:10px">
+        <div>
+          <label for="authEmail">Email</label>
+          <input id="authEmail" placeholder="nama@contoh.com" type="email" />
+        </div>
+        <div>
+          <label for="authPass">Password</label>
+          <input id="authPass" placeholder="••••••••" type="password" />
+        </div>
+      </div>
+      <div class="toolbar" style="margin-top:12px">
+        <button class="btn primary" id="btnSignIn">Masuk</button>
+        <button class="btn" id="btnSignUp">Daftar</button>
+        <button class="btn warn" id="btnResetPass">Kirim Link Reset</button>
+      </div>
+      <p class="note" style="margin-top:8px">Tips: setelah <em>sign up</em>, cek email verifikasi (jika diaktifkan) lalu <em>sign in</em>.</p>
+    </section>
+
+    <!-- Protected App Area (visible saat login) -->
+    <div id="appArea" style="display:none">
+    <!-- Koneksi Supabase -->
+    <section class="card">
+      <h2>Koneksi Supabase</h2>
+      <p class="note">Masukkan <em>Project URL</em> & <em>Anon Key</em> Anda. Disimpan aman di <span class="kbd">localStorage</span> browser.</p>
+      <div class="grid grid-2" style="margin-top:10px">
+        <div>
+          <label for="url">SUPABASE_URL</label>
+          <input id="url" placeholder="https://xxxx.supabase.co" />
+        </div>
+        <div>
+          <label for="key">SUPABASE_ANON_KEY</label>
+          <input id="key" placeholder="eyJhbGciOi..." />
+        </div>
+      </div>
+      <div class="toolbar" style="margin-top:12px">
+        <button class="btn primary" id="btnSaveConn">Simpan & Hubungkan</button>
+        <button class="btn" id="btnClearConn">Hapus Kredensial</button>
+        <span class="note">Gunakan role <strong>anon</strong> dan aktifkan RLS dengan kebijakan yang sesuai.</span>
+      </div>
+    </section>
+
+    <!-- Master: Kategori -->
+    <section class="card">
+      <h2>Kategori</h2>
+      <div class="row">
+        <div>
+          <label>Nama Kategori</label>
+          <input id="katNama" placeholder="mis. Komputer" />
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:10px">
+          <button class="btn success" id="katAdd">Tambah</button>
+          <button class="btn" id="katReset">Reset</button>
+        </div>
+      </div>
+      <div class="sep"></div>
+      <div style="overflow:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nama</th>
+              <th style="width:180px">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="katBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Buku CRUD -->
+    <section class="card">
+      <h2>Buku</h2>
+      <div class="grid grid-2">
+        <div>
+          <label>ISBN</label>
+          <input id="bkIsbn" placeholder="978-xxx" />
+        </div>
+        <div>
+          <label>Judul</label>
+          <input id="bkJudul" placeholder="Judul buku" />
+        </div>
+        <div>
+          <label>Tahun Terbit</label>
+          <input id="bkTahun" type="number" placeholder="2015" />
+        </div>
+        <div>
+          <label>Kategori</label>
+          <select id="bkKategori"></select>
+        </div>
+        <div>
+          <label>Stok</label>
+          <input id="bkStok" type="number" placeholder="0" />
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:10px">
+          <button class="btn success" id="bkAdd">Simpan</button>
+          <button class="btn" id="bkReset">Reset</button>
+        </div>
+      </div>
+      <div class="sep"></div>
+      <div class="toolbar" style="justify-content:space-between">
+        <div style="display:flex;gap:10px">
+          <input id="bkSearch" placeholder="Cari judul/ISBN..." style="width:280px">
+          <button class="btn" id="bkRefresh">Refresh</button>
+        </div>
+        <span class="note">Klik baris untuk <strong>edit</strong>.</span>
+      </div>
+      <div style="overflow:auto;margin-top:10px">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>ISBN</th>
+              <th>Judul</th>
+              <th>Tahun</th>
+              <th>Kategori</th>
+              <th>Stok</th>
+              <th style="width:200px">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="bkBody"></tbody>
+        </table>
+      </div>
+    </section>
+    </div>
+  </main>
+
+  <footer class="wrap">
+    <div>💡 Simpan file ini sebagai <strong>index.html</strong>, push ke GitHub, lalu aktifkan GitHub Pages atau host statis apa pun.</div>
+  </footer>
+
+  <!-- Supabase JS v2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // ===== Util =====
+    const $ = (q) => document.querySelector(q);
+    const katBody = $('#katBody');
+    const bkBody = $('#bkBody');
+    const statusEl = $('#status');
+
+    let supabase = null;
+    let editingKategoriId = null;
+    let editingBukuId = null;
+
+    function toast(msg, type='info'){
+      statusEl.textContent = msg;
+      if(type==='ok') statusEl.style.color = '#93f7ae';
+      else if(type==='err') statusEl.style.color = '#ffb3ba';
+      else statusEl.style.color = '#e9eefc';
+    }
+
+    function ensureClient(){
+      const url = localStorage.getItem('sb_url');
+      const key = localStorage.getItem('sb_key');
+      if(!url || !key){ toast('Masukkan kredensial Supabase.', 'err'); return null; }
+      if(!supabase){ supabase = window.supabase.createClient(url, key); }
+      return supabase;
+    }
+
+    // ===== Connection handling =====
+    (function initConn(){
+      const url = localStorage.getItem('sb_url') || '';
+      const key = localStorage.getItem('sb_key') || '';
+      $('#url').value = url; $('#key').value = key;
+      if(url && key){ supabase = window.supabase.createClient(url,key); toast('Terhubung ke Supabase.', 'ok'); loadAll(); }
+    })();
+
+    $('#btnSaveConn').addEventListener('click', ()=>{
+      const url = $('#url').value.trim();
+      const key = $('#key').value.trim();
+      localStorage.setItem('sb_url', url);
+      localStorage.setItem('sb_key', key);
+      supabase = window.supabase.createClient(url,key);
+      toast('Tersimpan. Mencoba koneksi...','ok');
+      loadAll();
+    });
+    $('#btnClearConn').addEventListener('click', ()=>{
+      localStorage.removeItem('sb_url');
+      localStorage.removeItem('sb_key');
+      supabase = null; toast('Kredensial dihapus.','info');
+    });
+
+    // ===== AUTH / LOGIN =====
+    async function setAuthUI(session){
+      const loggedIn = !!session;
+      const email = session?.user?.email || '';
+      const loginSec = document.getElementById('loginSection');
+      const appArea = document.getElementById('appArea');
+      if(loggedIn){
+        loginSec.style.display='none';
+        appArea.style.display='';
+        toast('Login sebagai '+email, 'ok');
+      } else {
+        loginSec.style.display='';
+        appArea.style.display='none';
+        toast('Silakan login untuk melanjutkan.');
+      }
+    }
+
+    async function initAuth(){
+      const client = ensureClient(); if(!client) return;
+      const { data: { session } } = await client.auth.getSession();
+      setAuthUI(session);
+      client.auth.onAuthStateChange(async (_event, sess)=>{
+        setAuthUI(sess);
+        if(sess){ await ensurePenggunaProfile(sess.user); }
+      });
+    }
+
+    async function signIn(){
+      const client = ensureClient(); if(!client) return;
+      const email = $('#authEmail').value.trim();
+      const password = $('#authPass').value;
+      if(!email || !password){ toast('Email & password wajib.','err'); return; }
+      const { error } = await client.auth.signInWithPassword({ email, password });
+      if(error){ toast('Gagal login: '+error.message,'err'); return; }
+      toast('Login berhasil.','ok');
+    }
+
+    async function signUp(){
+      const client = ensureClient(); if(!client) return;
+      const email = $('#authEmail').value.trim();
+      const password = $('#authPass').value;
+      if(!email || !password){ toast('Email & password wajib.','err'); return; }
+      const { data, error } = await client.auth.signUp({ email, password });
+      if(error){ toast('Gagal daftar: '+error.message,'err'); return; }
+      toast('Pendaftaran berhasil. Silakan cek email verifikasi (jika diaktifkan) lalu login.', 'ok');
+    }
+
+    async function resetPass(){
+      const client = ensureClient(); if(!client) return;
+      const email = $('#authEmail').value.trim();
+      if(!email){ toast('Isi email untuk reset password.','err'); return; }
+      const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+      if(error){ toast('Gagal kirim link reset: '+error.message,'err'); return; }
+      toast('Link reset terkirim (cek email).','ok');
+    }
+
+    async function signOut(){
+      const client = ensureClient(); if(!client) return;
+      const { error } = await client.auth.signOut();
+      if(error){ toast('Gagal logout: '+error.message,'err'); return; }
+      toast('Berhasil logout.');
+    }
+
+    // Pastikan ada row di tabel profil pengguna (opsional)
+    async function ensurePenggunaProfile(user){
+      try{
+        const client = ensureClient(); if(!client) return;
+        const uid = user?.id; if(!uid) return;
+        await client.from('pengguna').upsert({ id: uid, nama: user.email, role: 'member' });
+      }catch(err){ /* no-op */ }
+    }
+
+    document.addEventListener('click', (e)=>{
+      if(e.target.id==='btnSignIn') signIn();
+      else if(e.target.id==='btnSignUp') signUp();
+      else if(e.target.id==='btnResetPass') resetPass();
+    });
+
+    // ===== KATEGORI CRUD =====
+    async function loadKategori(){
+      const client = ensureClient(); if(!client) return;
+      const { data, error } = await client.from('kategori').select('*').order('id');
+      if(error){ toast('Gagal load kategori: '+error.message,'err'); return; }
+      renderKategori(data||[]);
+      fillKategoriOptions(data||[]);
+    }
+
+    function renderKategori(rows){
+      katBody.innerHTML='';
+      rows.forEach(r=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML = `
+          <td>${r.id}</td>
+          <td>${r.nama}</td>
+          <td>
+            <button class="btn" data-edit="${r.id}">Edit</button>
+            <button class="btn danger" data-del="${r.id}">Hapus</button>
+          </td>`;
+        katBody.appendChild(tr);
+      });
+    }
+
+    async function addOrUpdateKategori(){
+      const client = ensureClient(); if(!client) return;
+      const nama = $('#katNama').value.trim();
+      if(!nama){ toast('Nama kategori wajib.','err'); return; }
+      let error;
+      if(editingKategoriId){
+        ({ error } = await client.from('kategori').update({ nama }).eq('id', editingKategoriId));
+      } else {
+        ({ error } = await client.from('kategori').insert({ nama }));
+      }
+      if(error){ toast('Gagal simpan kategori: '+error.message,'err'); return; }
+      $('#katNama').value=''; editingKategoriId=null; toast('Kategori tersimpan.','ok'); loadKategori();
+    }
+
+    async function deleteKategori(id){
+      const client = ensureClient(); if(!client) return;
+      if(!confirm('Hapus kategori ini?')) return;
+      const { error } = await client.from('kategori').delete().eq('id', id);
+      if(error){ toast('Gagal hapus: '+error.message,'err'); return; }
+      toast('Kategori dihapus.','ok'); loadKategori(); loadBuku();
+    }
+
+    katBody.addEventListener('click', (e)=>{
+      const editId = e.target.getAttribute('data-edit');
+      const delId = e.target.getAttribute('data-del');
+      if(editId){
+        const tr = e.target.closest('tr');
+        const nama = tr.children[1].textContent;
+        $('#katNama').value = nama; editingKategoriId = parseInt(editId,10);
+      } else if(delId){ deleteKategori(parseInt(delId,10)); }
+    });
+
+    $('#katAdd').addEventListener('click', addOrUpdateKategori);
+    $('#katReset').addEventListener('click', ()=>{ $('#katNama').value=''; editingKategoriId=null; });
+
+    function fillKategoriOptions(rows){
+      const sel = $('#bkKategori');
+      sel.innerHTML = '<option value="">— pilih —</option>' + rows.map(r=>`<option value="${r.id}">${r.nama}</option>`).join('');
+    }
+
+    // ===== BUKU CRUD =====
+    async function loadBuku(){
+      const client = ensureClient(); if(!client) return;
+      const q = $('#bkSearch').value.trim();
+      let query = client.from('buku').select('id,isbn,judul,tahun_terbit,id_kategori,stok,kategori: kategori (id,nama)').order('id');
+      if(q){
+        // Filter judul atau isbn (ilike)
+        query = client.from('buku').select('id,isbn,judul,tahun_terbit,id_kategori,stok,kategori: kategori (id,nama)')
+                 .or(`judul.ilike.%${q}%,isbn.ilike.%${q}%`).order('id');
+      }
+      const { data, error } = await query;
+      if(error){ toast('Gagal load buku: '+error.message,'err'); return; }
+      renderBuku(data||[]);
+    }
+
+    function renderBuku(rows){
+      bkBody.innerHTML='';
+      rows.forEach(r=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML = `
+          <td>${r.id}</td>
+          <td>${r.isbn||''}</td>
+          <td>${r.judul}</td>
+          <td>${r.tahun_terbit||''}</td>
+          <td>${r.kategori?.nama || ''}</td>
+          <td>${r.stok ?? 0}</td>
+          <td>
+            <button class="btn" data-bedit="${r.id}">Edit</button>
+            <button class="btn danger" data-bdel="${r.id}">Hapus</button>
+          </td>`;
+        tr.style.cursor='pointer';
+        tr.addEventListener('click', (ev)=>{
+          if(ev.target.getAttribute('data-bedit')||ev.target.getAttribute('data-bdel')) return; // aksi tombol
+          // isi form untuk edit
+          $('#bkIsbn').value = r.isbn||'';
+          $('#bkJudul').value = r.judul||'';
+          $('#bkTahun').value = r.tahun_terbit||'';
+          $('#bkKategori').value = r.id_kategori||'';
+          $('#bkStok').value = r.stok ?? 0;
+          editingBukuId = r.id;
+        });
+        bkBody.appendChild(tr);
+      });
+    }
+
+    async function saveBuku(){
+      const client = ensureClient(); if(!client) return;
+      const payload = {
+        isbn: $('#bkIsbn').value.trim() || null,
+        judul: $('#bkJudul').value.trim(),
+        tahun_terbit: $('#bkTahun').value ? parseInt($('#bkTahun').value,10) : null,
+        id_kategori: $('#bkKategori').value ? parseInt($('#bkKategori').value,10) : null,
+        stok: $('#bkStok').value ? parseInt($('#bkStok').value,10) : 0,
+      };
+      if(!payload.judul){ toast('Judul wajib diisi.','err'); return; }
+      let error;
+      if(editingBukuId){ ({ error } = await client.from('buku').update(payload).eq('id', editingBukuId)); }
+      else { ({ error } = await client.from('buku').insert(payload)); }
+      if(error){ toast('Gagal simpan buku: '+error.message,'err'); return; }
+      toast('Buku tersimpan.','ok');
+      resetBukuForm(); loadBuku();
+    }
+
+    async function deleteBuku(id){
+      const client = ensureClient(); if(!client) return;
+      if(!confirm('Hapus buku ini?')) return;
+      const { error } = await client.from('buku').delete().eq('id', id);
+      if(error){ toast('Gagal hapus buku: '+error.message,'err'); return; }
+      toast('Buku dihapus.','ok'); loadBuku();
+    }
+
+    function resetBukuForm(){
+      editingBukuId = null;
+      $('#bkIsbn').value='';
+      $('#bkJudul').value='';
+      $('#bkTahun').value='';
+      $('#bkKategori').value='';
+      $('#bkStok').value='';
+    }
+
+    $('#bkAdd').addEventListener('click', saveBuku);
+    $('#bkReset').addEventListener('click', resetBukuForm);
+    $('#bkSearch').addEventListener('input', ()=>{ loadBuku(); });
+    $('#bkRefresh').addEventListener('click', loadBuku);
+
+    bkBody.addEventListener('click',(e)=>{
+      const editId = e.target.getAttribute('data-bedit');
+      const delId  = e.target.getAttribute('data-bdel');
+      if(editId){ editingBukuId = parseInt(editId,10); /* baris klik sudah isi form */ }
+      if(delId){ deleteBuku(parseInt(delId,10)); }
+    });
+
+    // ===== Bootstrap =====
+    async function loadAll(){ await initAuth(); await loadKategori(); await loadBuku(); }
+  </script>
+</body>
+</html>
