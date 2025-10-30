@@ -49,18 +49,42 @@
   <header>
     <div class="wrap" style="display:flex;align-items:center;justify-content:space-between;gap:16px">
       <h1>Perpustakaan CRUD • Supabase</h1>
-      <div class="pill">
-        <span class="muted">Status:</span>
-        <strong id="status">Belum terhubung</strong>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="btn" id="btnLogout" style="display:none">Keluar</button>
+        <div class="pill">
+          <span class="muted">Status:</span>
+          <strong id="status">Belum terhubung</strong>
+        </div>
       </div>
     </div>
   </header>
 
   <main class="wrap grid" style="margin-top:18px">
-    <!-- Auth / Login -->
+    <!-- 0) Koneksi Supabase -->
+    <section class="card" id="connSection">
+      <h2>Koneksi Supabase</h2>
+      <p class="note">Masukkan <em>Project URL</em> & <em>Anon Key</em>. Disimpan aman di <span class="kbd">localStorage</span>.</p>
+      <div class="grid grid-2" style="margin-top:10px">
+        <div>
+          <label for="url">SUPABASE_URL</label>
+          <input id="url" placeholder="https://xxxx.supabase.co" />
+        </div>
+        <div>
+          <label for="key">SUPABASE_ANON_KEY</label>
+          <input id="key" placeholder="eyJhbGciOi..." />
+        </div>
+      </div>
+      <div class="toolbar" style="margin-top:12px">
+        <button class="btn primary" id="btnSaveConn">Simpan & Hubungkan</button>
+        <button class="btn" id="btnClearConn">Hapus Kredensial</button>
+        <span class="note">Gunakan role <strong>anon</strong> dan aktifkan RLS sesuai kebutuhan.</span>
+      </div>
+    </section>
+
+    <!-- 1) Auth / Login -->
     <section class="card" id="loginSection" style="display:none">
       <h2>Login / Daftar Pengguna</h2>
-      <p class="note">Gunakan email & password Supabase Auth. Setelah login, Anda bisa mengelola data.</p>
+      <p class="note">Gunakan email & password Supabase Auth. Setelah login, area aplikasi akan muncul.</p>
       <div class="grid grid-2" style="margin-top:10px">
         <div>
           <label for="authEmail">Email</label>
@@ -79,111 +103,90 @@
       <p class="note" style="margin-top:8px">Tips: setelah <em>sign up</em>, cek email verifikasi (jika diaktifkan) lalu <em>sign in</em>.</p>
     </section>
 
-    <!-- Protected App Area (visible saat login) -->
-    <div id="appArea" style="display:none">
-    <!-- Koneksi Supabase -->
-    <section class="card">
-      <h2>Koneksi Supabase</h2>
-      <p class="note">Masukkan <em>Project URL</em> & <em>Anon Key</em> Anda. Disimpan aman di <span class="kbd">localStorage</span> browser.</p>
-      <div class="grid grid-2" style="margin-top:10px">
-        <div>
-          <label for="url">SUPABASE_URL</label>
-          <input id="url" placeholder="https://xxxx.supabase.co" />
+    <!-- 2) Protected App Area (muncul saat login) -->
+    <div id="appArea" style="display:none" class="grid">
+      <!-- Kategori -->
+      <section class="card">
+        <h2>Kategori</h2>
+        <div class="row">
+          <div>
+            <label>Nama Kategori</label>
+            <input id="katNama" placeholder="mis. Komputer" />
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:10px">
+            <button class="btn success" id="katAdd">Tambah</button>
+            <button class="btn" id="katReset">Reset</button>
+          </div>
         </div>
-        <div>
-          <label for="key">SUPABASE_ANON_KEY</label>
-          <input id="key" placeholder="eyJhbGciOi..." />
+        <div class="sep"></div>
+        <div style="overflow:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nama</th>
+                <th style="width:180px">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="katBody"></tbody>
+          </table>
         </div>
-      </div>
-      <div class="toolbar" style="margin-top:12px">
-        <button class="btn primary" id="btnSaveConn">Simpan & Hubungkan</button>
-        <button class="btn" id="btnClearConn">Hapus Kredensial</button>
-        <span class="note">Gunakan role <strong>anon</strong> dan aktifkan RLS dengan kebijakan yang sesuai.</span>
-      </div>
-    </section>
+      </section>
 
-    <!-- Master: Kategori -->
-    <section class="card">
-      <h2>Kategori</h2>
-      <div class="row">
-        <div>
-          <label>Nama Kategori</label>
-          <input id="katNama" placeholder="mis. Komputer" />
+      <!-- Buku -->
+      <section class="card">
+        <h2>Buku</h2>
+        <div class="grid grid-2">
+          <div>
+            <label>ISBN</label>
+            <input id="bkIsbn" placeholder="978-xxx" />
+          </div>
+          <div>
+            <label>Judul</label>
+            <input id="bkJudul" placeholder="Judul buku" />
+          </div>
+          <div>
+            <label>Tahun Terbit</label>
+            <input id="bkTahun" type="number" placeholder="2015" />
+          </div>
+          <div>
+            <label>Kategori</label>
+            <select id="bkKategori"></select>
+          </div>
+          <div>
+            <label>Stok</label>
+            <input id="bkStok" type="number" placeholder="0" />
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:10px">
+            <button class="btn success" id="bkAdd">Simpan</button>
+            <button class="btn" id="bkReset">Reset</button>
+          </div>
         </div>
-        <div style="display:flex;align-items:flex-end;gap:10px">
-          <button class="btn success" id="katAdd">Tambah</button>
-          <button class="btn" id="katReset">Reset</button>
+        <div class="sep"></div>
+        <div class="toolbar" style="justify-content:space-between">
+          <div style="display:flex;gap:10px">
+            <input id="bkSearch" placeholder="Cari judul/ISBN..." style="width:280px">
+            <button class="btn" id="bkRefresh">Refresh</button>
+          </div>
+          <span class="note">Klik baris untuk <strong>edit</strong>.</span>
         </div>
-      </div>
-      <div class="sep"></div>
-      <div style="overflow:auto">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nama</th>
-              <th style="width:180px">Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="katBody"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- Buku CRUD -->
-    <section class="card">
-      <h2>Buku</h2>
-      <div class="grid grid-2">
-        <div>
-          <label>ISBN</label>
-          <input id="bkIsbn" placeholder="978-xxx" />
+        <div style="overflow:auto;margin-top:10px">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>ISBN</th>
+                <th>Judul</th>
+                <th>Tahun</th>
+                <th>Kategori</th>
+                <th>Stok</th>
+                <th style="width:200px">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="bkBody"></tbody>
+          </table>
         </div>
-        <div>
-          <label>Judul</label>
-          <input id="bkJudul" placeholder="Judul buku" />
-        </div>
-        <div>
-          <label>Tahun Terbit</label>
-          <input id="bkTahun" type="number" placeholder="2015" />
-        </div>
-        <div>
-          <label>Kategori</label>
-          <select id="bkKategori"></select>
-        </div>
-        <div>
-          <label>Stok</label>
-          <input id="bkStok" type="number" placeholder="0" />
-        </div>
-        <div style="display:flex;align-items:flex-end;gap:10px">
-          <button class="btn success" id="bkAdd">Simpan</button>
-          <button class="btn" id="bkReset">Reset</button>
-        </div>
-      </div>
-      <div class="sep"></div>
-      <div class="toolbar" style="justify-content:space-between">
-        <div style="display:flex;gap:10px">
-          <input id="bkSearch" placeholder="Cari judul/ISBN..." style="width:280px">
-          <button class="btn" id="bkRefresh">Refresh</button>
-        </div>
-        <span class="note">Klik baris untuk <strong>edit</strong>.</span>
-      </div>
-      <div style="overflow:auto;margin-top:10px">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>ISBN</th>
-              <th>Judul</th>
-              <th>Tahun</th>
-              <th>Kategori</th>
-              <th>Stok</th>
-              <th style="width:200px">Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="bkBody"></tbody>
-        </table>
-      </div>
-    </section>
+      </section>
     </div>
   </main>
 
@@ -199,6 +202,7 @@
     const katBody = $('#katBody');
     const bkBody = $('#bkBody');
     const statusEl = $('#status');
+    const btnLogout = $('#btnLogout');
 
     let supabase = null;
     let editingKategoriId = null;
@@ -214,7 +218,7 @@
     function ensureClient(){
       const url = localStorage.getItem('sb_url');
       const key = localStorage.getItem('sb_key');
-      if(!url || !key){ toast('Masukkan kredensial Supabase.', 'err'); return null; }
+      if(!url || !key){ toast('Masukkan kredensial Supabase.','err'); return null; }
       if(!supabase){ supabase = window.supabase.createClient(url, key); }
       return supabase;
     }
@@ -224,7 +228,14 @@
       const url = localStorage.getItem('sb_url') || '';
       const key = localStorage.getItem('sb_key') || '';
       $('#url').value = url; $('#key').value = key;
-      if(url && key){ supabase = window.supabase.createClient(url,key); toast('Terhubung ke Supabase.', 'ok'); loadAll(); }
+      if(url && key){
+        supabase = window.supabase.createClient(url,key);
+        toast('Terhubung ke Supabase.','ok');
+        initAuth();
+        loadAllData();
+      } else {
+        toast('Belum terhubung');
+      }
     })();
 
     $('#btnSaveConn').addEventListener('click', ()=>{
@@ -234,12 +245,15 @@
       localStorage.setItem('sb_key', key);
       supabase = window.supabase.createClient(url,key);
       toast('Tersimpan. Mencoba koneksi...','ok');
-      loadAll();
+      initAuth();
+      loadAllData();
     });
-    $('#btnClearConn').addEventListener('click', ()=>{
+    $('#btnClearConn').addEventListener('click', async ()=>{
       localStorage.removeItem('sb_url');
       localStorage.removeItem('sb_key');
+      if(supabase){ await supabase.auth.signOut().catch(()=>{}); }
       supabase = null; toast('Kredensial dihapus.','info');
+      setAuthUI(null);
     });
 
     // ===== AUTH / LOGIN =====
@@ -248,15 +262,14 @@
       const email = session?.user?.email || '';
       const loginSec = document.getElementById('loginSection');
       const appArea = document.getElementById('appArea');
-      if(loggedIn){
-        loginSec.style.display='none';
-        appArea.style.display='';
-        toast('Login sebagai '+email, 'ok');
+      if(ensureClient()){ // hanya tampilkan login jika sudah ada client
+        loginSec.style.display = loggedIn ? 'none' : '';
       } else {
-        loginSec.style.display='';
-        appArea.style.display='none';
-        toast('Silakan login untuk melanjutkan.');
+        loginSec.style.display = 'none';
       }
+      appArea.style.display = loggedIn ? '' : 'none';
+      btnLogout.style.display = loggedIn ? '' : 'none';
+      if(loggedIn){ toast('Login sebagai '+email, 'ok'); }
     }
 
     async function initAuth(){
@@ -277,6 +290,7 @@
       const { error } = await client.auth.signInWithPassword({ email, password });
       if(error){ toast('Gagal login: '+error.message,'err'); return; }
       toast('Login berhasil.','ok');
+      loadAllData();
     }
 
     async function signUp(){
@@ -284,9 +298,9 @@
       const email = $('#authEmail').value.trim();
       const password = $('#authPass').value;
       if(!email || !password){ toast('Email & password wajib.','err'); return; }
-      const { data, error } = await client.auth.signUp({ email, password });
+      const { error } = await client.auth.signUp({ email, password });
       if(error){ toast('Gagal daftar: '+error.message,'err'); return; }
-      toast('Pendaftaran berhasil. Silakan cek email verifikasi (jika diaktifkan) lalu login.', 'ok');
+      toast('Pendaftaran berhasil. Cek email verifikasi (jika diaktifkan), lalu login.', 'ok');
     }
 
     async function resetPass(){
@@ -303,9 +317,10 @@
       const { error } = await client.auth.signOut();
       if(error){ toast('Gagal logout: '+error.message,'err'); return; }
       toast('Berhasil logout.');
+      setAuthUI(null);
     }
 
-    // Pastikan ada row di tabel profil pengguna (opsional)
+    // Pastikan ada row profil pengguna (optional)
     async function ensurePenggunaProfile(user){
       try{
         const client = ensureClient(); if(!client) return;
@@ -318,6 +333,7 @@
       if(e.target.id==='btnSignIn') signIn();
       else if(e.target.id==='btnSignUp') signUp();
       else if(e.target.id==='btnResetPass') resetPass();
+      else if(e.target.id==='btnLogout') signOut();
     });
 
     // ===== KATEGORI CRUD =====
@@ -390,7 +406,6 @@
       const q = $('#bkSearch').value.trim();
       let query = client.from('buku').select('id,isbn,judul,tahun_terbit,id_kategori,stok,kategori: kategori (id,nama)').order('id');
       if(q){
-        // Filter judul atau isbn (ilike)
         query = client.from('buku').select('id,isbn,judul,tahun_terbit,id_kategori,stok,kategori: kategori (id,nama)')
                  .or(`judul.ilike.%${q}%,isbn.ilike.%${q}%`).order('id');
       }
@@ -416,8 +431,7 @@
           </td>`;
         tr.style.cursor='pointer';
         tr.addEventListener('click', (ev)=>{
-          if(ev.target.getAttribute('data-bedit')||ev.target.getAttribute('data-bdel')) return; // aksi tombol
-          // isi form untuk edit
+          if(ev.target.getAttribute('data-bedit')||ev.target.getAttribute('data-bdel')) return;
           $('#bkIsbn').value = r.isbn||'';
           $('#bkJudul').value = r.judul||'';
           $('#bkTahun').value = r.tahun_terbit||'';
@@ -472,12 +486,12 @@
     bkBody.addEventListener('click',(e)=>{
       const editId = e.target.getAttribute('data-bedit');
       const delId  = e.target.getAttribute('data-bdel');
-      if(editId){ editingBukuId = parseInt(editId,10); /* baris klik sudah isi form */ }
+      if(editId){ editingBukuId = parseInt(editId,10); }
       if(delId){ deleteBuku(parseInt(delId,10)); }
     });
 
-    // ===== Bootstrap =====
-    async function loadAll(){ await initAuth(); await loadKategori(); await loadBuku(); }
+    // ===== Bootstrap loaders =====
+    async function loadAllData(){ await loadKategori(); await loadBuku(); }
   </script>
 </body>
 </html>
